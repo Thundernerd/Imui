@@ -519,7 +519,7 @@ namespace Imui.Core
             {
                 Id = id,
                 Type = typeof(TState).GetHashCode(),
-                Ptr = ptr
+                Ptr = ptr,
 #if IMUI_DEBUG
                 Descriptor = typeof(TState).FullName,
 #endif
