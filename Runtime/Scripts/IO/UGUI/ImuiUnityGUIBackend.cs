@@ -1,5 +1,6 @@
 using System;
 using Imui.IO.Events;
+using Imui.IO.Rendering;
 using Imui.IO.Utility;
 using Imui.IO.Touch;
 using Imui.Utility;
@@ -24,7 +25,6 @@ namespace Imui.IO.UGUI
         private const float CUSTOM_SCALE_MIN = 0.05f;
         private const float CUSTOM_SCALE_MAX = 16.0f;
 
-        private const int COMMAND_BUFFER_POOL_INITIAL_SIZE = 2;
         private const int MOUSE_EVENTS_QUEUE_SIZE = 4;
         private const int KEYBOARD_EVENTS_QUEUE_SIZE = 16;
 
@@ -63,10 +63,10 @@ namespace Imui.IO.UGUI
         
         private IImuiInput.RaycasterDelegate raycaster;
         private ImDynamicRenderTexture texture;
-        private ImDynamicArray<CommandBuffer> commandBufferPool;
         private ImCircularBuffer<ImMouseEvent> mouseEventsQueue;
         private ImCircularBuffer<ImKeyboardEvent> nextKeyboardEvents;
         private ImCircularBuffer<ImKeyboardEvent> keyboardEvents;
+        private IImuiRenderingScheduler scheduler;
         private Vector2 mousePosition;
         private ImMouseEvent mouseEvent;
         private ImTextEvent textEvent;
@@ -84,6 +84,7 @@ namespace Imui.IO.UGUI
         {
             base.Awake();
 
+            scheduler ??= GraphicsSettings.currentRenderPipeline ? new ImuiScriptableRenderingScheduler() : new ImuiBuiltinRenderingScheduler();
             useGUILayout = false;
         }
 
@@ -107,7 +108,7 @@ namespace Imui.IO.UGUI
         protected override void OnEnable()
         {
             base.OnEnable();
-
+            
             if (ClearTexture == null)
             {
                 ClearTexture = new Texture2D(1, 1, TextureFormat.RGBA32, false);
@@ -129,12 +130,7 @@ namespace Imui.IO.UGUI
             {
                 nextKeyboardEvents = new ImCircularBuffer<ImKeyboardEvent>(KEYBOARD_EVENTS_QUEUE_SIZE);
             }
-
-            if (commandBufferPool.Array == null)
-            {
-                commandBufferPool = new ImDynamicArray<CommandBuffer>(COMMAND_BUFFER_POOL_INITIAL_SIZE);
-            }
-
+            
             touchKeyboardHandler ??= new ImTouchKeyboard();
             texture ??= new ImDynamicRenderTexture();
         }
@@ -437,24 +433,6 @@ namespace Imui.IO.UGUI
             return scalingMode == ScalingMode.Inherited ? canvas.scaleFactor : customScale;
         }
 
-        CommandBuffer IImuiRenderer.CreateCommandBuffer()
-        {
-            if (commandBufferPool.Count == 0)
-            {
-                var cmd = new CommandBuffer() { name = "Imui" };
-
-                commandBufferPool.Add(cmd);
-            }
-
-            return commandBufferPool.Pop();
-        }
-
-        void IImuiRenderer.ReleaseCommandBuffer(CommandBuffer cmd)
-        {
-            cmd.Clear();
-            commandBufferPool.Add(cmd);
-        }
-
         Vector2Int IImuiRenderer.SetupRenderTarget(CommandBuffer cmd)
         {
             var rect = GetWorldRect();
@@ -469,9 +447,9 @@ namespace Imui.IO.UGUI
             return targetSize;
         }
 
-        void IImuiRenderer.Execute(CommandBuffer cmd)
+        public void Schedule(ImuiRenderDelegate renderDelegate)
         {
-            Graphics.ExecuteCommandBuffer(cmd);
+            scheduler.Schedule(renderDelegate);
         }
     }
 }

@@ -34,13 +34,9 @@ namespace Imui.Demo
             ImDemoWindow.Draw(gui, ref demoOpen);
             
             gui.EndFrame();
-        }
-        
-        private void OnRenderObject()
-        {
             gui.Render();
         }
-
+        
         private void DrawRootMenu()
         {
             gui.BeginMenuBar();
