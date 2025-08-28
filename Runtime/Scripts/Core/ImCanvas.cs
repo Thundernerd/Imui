@@ -63,7 +63,7 @@ namespace Imui.Core
         /// Checkrboard pattern
         /// </summary>
         Checkerboard,
-        
+
         /// <summary>
         /// Texture for AA lines (1-2px)
         /// </summary>
@@ -91,7 +91,7 @@ namespace Imui.Core
         public const int CB_TEX_W = 32;
         public const int CB_TEX_H = 32;
         public const int CB_TEX_S = 8;
-        
+
         public const int AALINE_TEX_X = CB_TEX_X + CB_TEX_W;
         public const int AALINE_TEX_Y = 0;
         public const int AALINE_TEX_W = 3;
@@ -129,7 +129,7 @@ namespace Imui.Core
 
             var semiTransparent33 = Color.white.WithAlpha(0.33f);
             var semiTransparent66 = Color.white.WithAlpha(0.66f);
-            
+
             for (int x = AALINE_TEX_X; x < AALINE_TEX_X + AALINE_TEX_W; ++x)
             {
                 pixels[(AALINE_TEX_Y + 0) * MAIN_ATLAS_W + x] = Color.clear;
@@ -212,6 +212,8 @@ namespace Imui.Core
                 ScreenSize.x - SafeAreaPadding.Left - SafeAreaPadding.Right,
                 ScreenSize.y - SafeAreaPadding.Bottom - SafeAreaPadding.Top);
 
+        public bool NeedsDepth => needsDepth;
+
         /// <summary>
         /// Size of screen
         /// </summary>
@@ -225,7 +227,18 @@ namespace Imui.Core
         /// <summary>
         /// Z coordinate for all generated meshes
         /// </summary>
-        public int DrawingDepth = 0;
+        public short DrawingDepth
+        {
+            get
+            {
+                return (short)drawingDepth;
+            }
+            set
+            {
+                drawingDepth = value;
+                needsDepth |= drawingDepth != 0;
+            }
+        }
 
         /// <summary>
         /// Safe area padding for each side of the screen
@@ -239,9 +252,11 @@ namespace Imui.Core
         private ImDynamicArray<SettingsPref> settingsPrefStack;
         private Vector2 screenSize;
         private float screenScale;
+        private float drawingDepth = 0;
+        private bool needsDepth;
 
         private bool disposed;
-        
+
         private ImAABB cullingBounds;
         private ImTextClipRect textClipRect;
         private Vector4 texScaleOffset;
@@ -250,7 +265,8 @@ namespace Imui.Core
         private readonly ImMeshDrawer meshDrawer;
         private readonly ImTextDrawer textDrawer;
         private readonly ImArena arena;
-        private readonly LocalKeyword sdfText;
+
+        private LocalKeyword sdfText;
 
         public ImCanvas(ImMeshDrawer meshDrawer, ImTextDrawer textDrawer, ImArena arena)
         {
@@ -266,12 +282,12 @@ namespace Imui.Core
             defaultTexture = CreateMainAtlas();
             settingsStack = new ImDynamicArray<ImCanvasSettings>(SETTINGS_CAPACITY);
             settingsPrefStack = new ImDynamicArray<SettingsPref>(SETTINGS_CAPACITY);
-            
+
             SetTexScaleOffset(GetTexScaleOffsetFor(ImCanvasBuiltinTex.Primary));
 
             var aaLine = new LineSettings() { ExtraScale = 0.4f, TexScaleOffset = GetTexScaleOffsetFor(ImCanvasBuiltinTex.AALine) };
             var defLine = new LineSettings() { ExtraScale = 0.0f, TexScaleOffset = GetTexScaleOffsetFor(ImCanvasBuiltinTex.Primary) };
-            
+
             lineSettings = new[] { aaLine, aaLine, aaLine, defLine };
         }
 
@@ -285,7 +301,7 @@ namespace Imui.Core
         {
             this.screenSize = screenSize;
             this.screenScale = screenScale;
-            
+
             SafeAreaPadding = safeAreaPadding;
         }
 
@@ -567,7 +583,7 @@ namespace Imui.Core
             meshDrawer.Color = color;
             meshDrawer.ScaleOffset = texScaleOffset;
             meshDrawer.Atlas = ImMeshDrawer.MAIN_TEX_ID;
-            meshDrawer.Depth = DrawingDepth;
+            meshDrawer.Depth = drawingDepth;
             meshDrawer.AddQuadTextured(rect.X, rect.Y, rect.W, rect.H);
         }
 
@@ -648,7 +664,7 @@ namespace Imui.Core
             }
 
             textDrawer.Color = color;
-            textDrawer.Depth = DrawingDepth;
+            textDrawer.Depth = drawingDepth;
             textDrawer.AddTextWithLayout(text, in layout, position.x, position.y, in textClipRect);
         }
 
@@ -735,15 +751,15 @@ namespace Imui.Core
 
             thickness = Mathf.Max(thickness, thickness / screenScale);
             bias = Mathf.Clamp01(bias);
-            
+
             var settings = (int)thickness >= lineSettings.Length ? lineSettings[^1] : lineSettings[(int)thickness];
             var outer = bias + settings.ExtraScale;
-            var inner = 1 - bias + settings.ExtraScale; 
+            var inner = 1 - bias + settings.ExtraScale;
 
             meshDrawer.Color = color;
             meshDrawer.ScaleOffset = settings.TexScaleOffset;
             meshDrawer.Atlas = ImMeshDrawer.MAIN_TEX_ID;
-            meshDrawer.Depth = DrawingDepth;
+            meshDrawer.Depth = drawingDepth;
             meshDrawer.AddLine(stackalloc Vector2[2] { p0, p1 }, false, thickness, outer, inner);
         }
 
@@ -767,12 +783,12 @@ namespace Imui.Core
 
             var settings = (int)thickness >= lineSettings.Length ? lineSettings[^1] : lineSettings[(int)thickness];
             var outer = bias + settings.ExtraScale;
-            var inner = 1 - bias + settings.ExtraScale; 
+            var inner = 1 - bias + settings.ExtraScale;
 
             meshDrawer.Color = color;
             meshDrawer.ScaleOffset = settings.TexScaleOffset;
             meshDrawer.Atlas = ImMeshDrawer.MAIN_TEX_ID;
-            meshDrawer.Depth = DrawingDepth;
+            meshDrawer.Depth = drawingDepth;
             meshDrawer.AddLine(path, closed, thickness, outer, inner);
         }
 
@@ -793,14 +809,14 @@ namespace Imui.Core
 
             thickness = Mathf.Max(thickness, thickness / screenScale);
             bias = Mathf.Clamp01(bias);
-            
+
             var outer = bias;
-            var inner = 1 - bias; 
+            var inner = 1 - bias;
 
             meshDrawer.Color = color;
             meshDrawer.ScaleOffset = texScaleOffset;
             meshDrawer.Atlas = ImMeshDrawer.MAIN_TEX_ID;
-            meshDrawer.Depth = DrawingDepth;
+            meshDrawer.Depth = drawingDepth;
             meshDrawer.AddLineMiter(path, closed, thickness, outer, inner);
         }
 
@@ -814,7 +830,7 @@ namespace Imui.Core
             meshDrawer.Color = color;
             meshDrawer.ScaleOffset = texScaleOffset;
             meshDrawer.Atlas = ImMeshDrawer.MAIN_TEX_ID;
-            meshDrawer.Depth = DrawingDepth;
+            meshDrawer.Depth = drawingDepth;
             meshDrawer.AddFilledConvexMesh(points);
         }
 
@@ -829,7 +845,7 @@ namespace Imui.Core
             meshDrawer.Color = color;
             meshDrawer.ScaleOffset = texScaleOffset;
             meshDrawer.Atlas = ImMeshDrawer.MAIN_TEX_ID;
-            meshDrawer.Depth = DrawingDepth;
+            meshDrawer.Depth = drawingDepth;
             meshDrawer.AddFilledConvexMeshTextured(points, bounds.X, bounds.Y, bounds.W, bounds.H);
         }
 

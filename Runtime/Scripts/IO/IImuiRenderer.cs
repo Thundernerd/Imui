@@ -10,7 +10,7 @@ namespace Imui.IO
     {
         Vector2 GetScreenSize();
         float GetScale();
-        Vector2Int SetupRenderTarget(CommandBuffer cmd);
+        Vector2Int SetupRenderTarget(CommandBuffer cmd, bool needsDepth);
         void Schedule(ImuiRenderDelegate renderDelegate);
     }
 

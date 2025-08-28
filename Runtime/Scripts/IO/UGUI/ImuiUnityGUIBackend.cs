@@ -444,11 +444,11 @@ namespace Imui.IO.UGUI
             return scalingMode == ScalingMode.Inherited ? canvas.scaleFactor : customScale;
         }
 
-        Vector2Int IImuiRenderer.SetupRenderTarget(CommandBuffer cmd)
+        Vector2Int IImuiRenderer.SetupRenderTarget(CommandBuffer cmd, bool needsDepth)
         {
             var rect = GetWorldRect();
             var size = new Vector2Int((int)rect.width, (int)rect.height);
-            var targetSize = texture.SetupRenderTarget(cmd, size, out var textureChanged);
+            var targetSize = texture.SetupRenderTarget(cmd, size, needsDepth, out var textureChanged);
 
             if (textureChanged)
             {
