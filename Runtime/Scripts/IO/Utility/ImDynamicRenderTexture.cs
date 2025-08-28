@@ -48,8 +48,12 @@ namespace Imui.IO.Utility
 
             ReleaseTexture();
 
-            Texture = new RenderTexture(w, h, GraphicsFormat.R8G8B8A8_UNorm, GraphicsFormat.None);
-            Texture.name = "ImuiRenderBuffer";
+            var desc = new RenderTextureDescriptor(w, h, RenderTextureFormat.ARGB32, 0, 0, RenderTextureReadWrite.Linear);
+            
+            Texture = new RenderTexture(desc)
+            {
+                name = "ImuiRenderBuffer"
+            };
 
             return Texture.Create();
         }

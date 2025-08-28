@@ -36,6 +36,7 @@ namespace Imui.IO.UGUI
 
         private static Texture2D ClearTexture;
         private static readonly Vector3[] TempBuffer = new Vector3[4];
+        private static Material DefaultMaterial;
 
         public bool WasMouseDownThisFrame { get; private set; }
 
@@ -45,7 +46,8 @@ namespace Imui.IO.UGUI
         public int KeyboardEventsCount => keyboardEvents.Count;
 
         public override Texture mainTexture => texture?.Texture == null ? ClearTexture : texture.Texture;
-        
+        public override Material defaultMaterial => DefaultMaterial ? DefaultMaterial : base.defaultMaterial;
+
         public float CustomScale
         {
             get => customScale;
@@ -83,6 +85,15 @@ namespace Imui.IO.UGUI
         protected override void Awake()
         {
             base.Awake();
+
+            if (!DefaultMaterial)
+            {
+                var shader = Resources.Load<Shader>("Imui/imui_ugui");
+                if (shader)
+                {
+                    DefaultMaterial = new Material(shader);
+                }
+            }
 
             scheduler ??= GraphicsSettings.currentRenderPipeline ? new ImuiScriptableRenderingScheduler() : new ImuiBuiltinRenderingScheduler();
             useGUILayout = false;
