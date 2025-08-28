@@ -78,6 +78,8 @@ namespace Imui.Core
 
         private const float LINE_THICKNESS_THRESHOLD = 0.01f;
 
+        private const string SDF_TEXT_KEYWORD = "SDF_TEXT";
+
         public const int PRIM_TEX_X = 0;
         public const int PRIM_TEX_Y = 0;
         public const int PRIM_TEX_W = 4;
@@ -260,7 +262,7 @@ namespace Imui.Core
 
             shader = Resources.Load<Shader>("Imui/imui_default");
             material = new Material(shader);
-            sdfText = new LocalKeyword(shader, "SDF_TEXT");
+            sdfText = new LocalKeyword(shader, SDF_TEXT_KEYWORD);
             defaultTexture = CreateMainAtlas();
             settingsStack = new ImDynamicArray<ImCanvasSettings>(SETTINGS_CAPACITY);
             settingsPrefStack = new ImDynamicArray<SettingsPref>(SETTINGS_CAPACITY);
@@ -292,6 +294,14 @@ namespace Imui.Core
         /// </summary>
         public void ConfigureDefaultMaterial()
         {
+#if UNITY_EDITOR
+            // (artem-s): changing shader at runtime updates the shader instance used by the material, but both cached and newly loaded shaders
+            // have the same instance ID, both are not null and the only difference is that the old shader has its CachedPtr set to zero. 
+            // But there is no public API to check this. FFS, Unity!
+            // I gave up trying to track changes, so fuck it, I'll just do keyword name look up every frame.
+            sdfText = new LocalKeyword(material.shader, SDF_TEXT_KEYWORD);
+#endif
+
             material.SetKeyword(sdfText, textDrawer.RenderMode == ImGlyphRenderMode.Sdf);
         }
 
