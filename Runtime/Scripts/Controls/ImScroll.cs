@@ -34,6 +34,8 @@ namespace Imui.Controls
         public Vector2 Velocity;
         public ImScrollStateFlag State;
         public ImScrollFlag Flags;
+        public uint VerticalBarId;
+        public uint HorizontalBarId;
     }
 
     public static class ImScroll
@@ -77,6 +79,13 @@ namespace Imui.Controls
             state.Offset = offset;
         }
 
+        public static bool IsScrolling(this ImGui gui)
+        { 
+            ref readonly var state = ref gui.GetCurrentScope<ImScrollState>(out var id);
+
+            return gui.IsControlActive(id) || gui.IsControlActive(state.HorizontalBarId) || gui.IsControlActive(state.VerticalBarId);
+        }
+
         public static void Scroll(ImGui gui, uint id, ref ImScrollState state, ImRect view, Vector2 size)
         {
             const ImScrollStateFlag ANY_AXES_SCROLLABLE = ImScrollStateFlag.HorScrollable | ImScrollStateFlag.VerScrollable;
@@ -86,8 +95,8 @@ namespace Imui.Controls
             var dx = 0f;
             var dy = 0f;
 
-            var horId = gui.GetNextControlId();
-            var verId = gui.GetNextControlId();
+            state.HorizontalBarId = gui.GetNextControlId();
+            state.VerticalBarId = gui.GetNextControlId();
 
             size.x += adjust.x;
             size.y += adjust.y;
@@ -97,7 +106,7 @@ namespace Imui.Controls
                 var rect = GetVerticalBarRect(gui, view);
                 var normalSize = view.H / size.y;
                 var normalPosition = state.Offset.y / (size.y - view.H);
-                var normalDelta = Bar(verId, gui, rect, normalSize, normalPosition, 1);
+                var normalDelta = Bar(state.VerticalBarId, gui, rect, normalSize, normalPosition, 1);
                 if (normalDelta != 0)
                 {
                     state.State |= ImScrollStateFlag.ConventionalScroll;
@@ -111,7 +120,7 @@ namespace Imui.Controls
                 var rect = GetHorizontalBarRect(gui, view, (state.State & ImScrollStateFlag.VerBarVisible) != 0);
                 var normalSize = view.W / size.x;
                 var normalPosition = (state.Offset.x / (size.x - view.W));
-                var normalDelta = Bar(horId, gui, rect, normalSize, -normalPosition, 0);
+                var normalDelta = Bar(state.HorizontalBarId, gui, rect, normalSize, -normalPosition, 0);
                 if (normalDelta != 0)
                 {
                     state.State |= ImScrollStateFlag.ConventionalScroll;
