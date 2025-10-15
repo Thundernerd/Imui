@@ -412,7 +412,7 @@ namespace Imui.Core
 
         public bool IsControlActive(uint controlId)
         {
-            return activeControl == controlId;
+            return controlId != default && activeControl == controlId;
         }
 
         public bool IsControlHovered(uint controlId)
