@@ -27,7 +27,7 @@ namespace Imui.Core
         private const int CONTROL_IDS_STACK_CAPACITY = 32;
 
         private const int INIT_MESHES_COUNT = 1024 / 2;
-        private const int INIT_VERTICES_COUNT = 1024 * 16;
+        private const int INIT_VERTICES_COUNT = 1024 * 32;
         private const int INIT_INDICES_COUNT = INIT_VERTICES_COUNT * 3;
 
         private const int FLOATING_CONTROLS_CAPACITY = 128;
