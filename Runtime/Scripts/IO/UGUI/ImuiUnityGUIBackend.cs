@@ -408,12 +408,11 @@ namespace Imui.IO.UGUI
 
         private bool IsAnyTouchBegan()
         {
-            var touches = Input.touches;
             var count = Input.touchCount;
 
             for (int i = 0; i < count; ++i)
             {
-                if (touches[i].phase == TouchPhase.Began)
+                if (Input.GetTouch(i).phase == TouchPhase.Began)
                 {
                     return true;
                 }
