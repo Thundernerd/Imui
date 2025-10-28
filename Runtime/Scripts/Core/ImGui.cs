@@ -658,7 +658,7 @@ namespace Imui.Core
             var renderCmd = context.CreateCommandBuffer();
             var screenSize = Renderer.GetScreenSize();
             var uiScale = Renderer.GetScale();
-            var targetSize = Renderer.SetupRenderTarget(renderCmd, Canvas.NeedsDepth);
+            var targetSize = Renderer.SetupRenderTarget(renderCmd);
 
             if (RenderMode is ImGuiRenderMode.Shaded or ImGuiRenderMode.ShadedWireframe)
             {

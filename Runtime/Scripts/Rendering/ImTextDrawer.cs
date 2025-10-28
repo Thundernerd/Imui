@@ -125,7 +125,6 @@ namespace Imui.Rendering
         public ImGlyphRenderMode RenderMode => renderMode;
         public bool IsFontLoaded => FontAsset;
 
-        public float Depth;
         public Color32 Color;
 
         public float FontRenderSize => renderSize;
@@ -430,7 +429,6 @@ namespace Imui.Rendering
             ref var v0 = ref buffer.Vertices[vc + 0];
             v0.Position.x = p0x;
             v0.Position.y = p0y;
-            v0.Position.z = Depth;
             v0.Color = Color;
             v0.UV.x = glyph.uv0x;
             v0.UV.y = glyph.uv0y;
@@ -439,7 +437,6 @@ namespace Imui.Rendering
             ref var v1 = ref buffer.Vertices[vc + 1];
             v1.Position.x = p0x;
             v1.Position.y = p1y;
-            v1.Position.z = Depth;
             v1.Color = Color;
             v1.UV.x = glyph.uv0x;
             v1.UV.y = glyph.uv1y;
@@ -448,7 +445,6 @@ namespace Imui.Rendering
             ref var v2 = ref buffer.Vertices[vc + 2];
             v2.Position.x = p1x;
             v2.Position.y = p1y;
-            v2.Position.z = Depth;
             v2.Color = Color;
             v2.UV.x = glyph.uv1x;
             v2.UV.y = glyph.uv1y;
@@ -457,7 +453,6 @@ namespace Imui.Rendering
             ref var v3 = ref buffer.Vertices[vc + 3];
             v3.Position.x = p1x;
             v3.Position.y = p0y;
-            v3.Position.z = Depth;
             v3.Color = Color;
             v3.UV.x = glyph.uv1x;
             v3.UV.y = glyph.uv0y;
