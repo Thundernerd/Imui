@@ -224,8 +224,10 @@ namespace Imui.Rendering
             
             ImUnityUtility.Destroy(fontAsset);
             fontAsset = null;
-            
+
+#if !UNITY_6000_0_OR_NEWER // (artem-s): apparently this causes UIToolkit to do something weird in background threads. At this point I'm just brute forcing all this shit. 
             ReflectionUtility.RebuildFontAssetCache(); // (artem-s): rebuilds lookup cache after font asset destroyed, JUST IN CASE
+#endif
         }
 
         public void ApplyAtlasChanges(bool force = false) {
