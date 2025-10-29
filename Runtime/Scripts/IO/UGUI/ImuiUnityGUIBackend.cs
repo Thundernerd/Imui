@@ -21,7 +21,7 @@ namespace Imui.IO.UGUI
             Inherited,
             Custom
         }
-        
+
         private const float CUSTOM_SCALE_MIN = 0.05f;
         private const float CUSTOM_SCALE_MAX = 16.0f;
 
@@ -62,7 +62,7 @@ namespace Imui.IO.UGUI
 
         [SerializeField] private ScalingMode scalingMode = ScalingMode.Inherited;
         [SerializeField] private float customScale = 1.0f;
-        
+
         private IImuiInput.RaycasterDelegate raycaster;
         private ImDynamicRenderTexture texture;
         private ImCircularBuffer<ImMouseEvent> mouseEventsQueue;
@@ -119,7 +119,7 @@ namespace Imui.IO.UGUI
         protected override void OnEnable()
         {
             base.OnEnable();
-            
+
             if (ClearTexture == null)
             {
                 ClearTexture = new Texture2D(1, 1, TextureFormat.RGBA32, false);
@@ -141,7 +141,7 @@ namespace Imui.IO.UGUI
             {
                 nextKeyboardEvents = new ImCircularBuffer<ImKeyboardEvent>(KEYBOARD_EVENTS_QUEUE_SIZE);
             }
-            
+
             touchKeyboardHandler ??= new ImTouchKeyboard();
             texture ??= new ImDynamicRenderTexture();
         }
@@ -198,7 +198,7 @@ namespace Imui.IO.UGUI
         {
             textEvent = default;
         }
-        
+
         public void Pull()
         {
 #if UNITY_EDITOR
@@ -251,7 +251,7 @@ namespace Imui.IO.UGUI
 
         public Vector2 GetMousePosition()
         {
-            return ((Vector2)Input.mousePosition - GetWorldRect().position) / GetScale();
+            return ((Vector2)ImUnityInputWrapper.MousePosition - GetWorldRect().position) / GetScale();
         }
 
         public void RequestTouchKeyboard(uint owner, ReadOnlySpan<char> text, ImTouchKeyboardSettings settings)
@@ -279,17 +279,20 @@ namespace Imui.IO.UGUI
                 nextKeyboardEvents.PushFront(new ImKeyboardEvent(keyboardEventType, evt.keyCode, evt.modifiers, evt.character));
             }
         }
-        
+
         public void OnPointerDown(PointerEventData eventData)
         {
             // (artem-s): with touch input, defer down event one frame so controls first could understand they are hovered
-            // before processing actual click
+            // before processing the actual click
 
             var device = GetDeviceType(eventData);
-            if (device == ImMouseDevice.Touch && IsAnyTouchBegan())
+            if (device == ImMouseDevice.Touch && ImUnityInputWrapper.IsTouchBeganThisFrame())
             {
-                mouseEventsQueue.PushFront(new ImMouseEvent(ImMouseEventType.Move, (int)eventData.button, GetMouseEventModifiers(), eventData.delta / GetScale(),
-                    device));
+                mouseEventsQueue.PushFront(new ImMouseEvent(ImMouseEventType.Move,
+                                                            (int)eventData.button,
+                                                            GetMouseEventModifiers(),
+                                                            eventData.delta / GetScale(),
+                                                            device));
             }
 
             var btn = (int)eventData.button;
@@ -311,8 +314,12 @@ namespace Imui.IO.UGUI
                 mouseHeldDown = true;
             }
 
-            mouseEventsQueue.PushFront(new ImMouseEvent(ImMouseEventType.Down, (int)eventData.button, GetMouseEventModifiers(), eventData.delta / GetScale(),
-                device, mouseDownCount[btn]));
+            mouseEventsQueue.PushFront(new ImMouseEvent(ImMouseEventType.Down,
+                                                        (int)eventData.button,
+                                                        GetMouseEventModifiers(),
+                                                        eventData.delta / GetScale(),
+                                                        device,
+                                                        mouseDownCount[btn]));
         }
 
         public void OnPointerUp(PointerEventData eventData)
@@ -344,8 +351,8 @@ namespace Imui.IO.UGUI
             var modifiers = GetMouseEventModifiers();
 
             mouseHeldDown = false;
-            
-            if (mouseEventsQueue.TryPeekFront(out var existingEvent) && 
+
+            if (mouseEventsQueue.TryPeekFront(out var existingEvent) &&
                 existingEvent.Type == ImMouseEventType.BeginDrag &&
                 existingEvent.Button == button &&
                 existingEvent.Modifiers == modifiers &&
@@ -355,7 +362,7 @@ namespace Imui.IO.UGUI
                 // (artem-s): skip this event, because drag delta is already handled by BeginDrag
                 return;
             }
-            
+
             mouseEventsQueue.PushFront(new ImMouseEvent(ImMouseEventType.Drag, button, modifiers, delta, device));
         }
 
@@ -386,39 +393,19 @@ namespace Imui.IO.UGUI
 
         private EventModifiers GetMouseEventModifiers()
         {
-            // TODO (artem-s): add support for new input system
-#if NEW_INPUT_SYSTEM_ENABLED
-            return EventModifiers.None;
-#endif
-
             var result = EventModifiers.None;
 
-            if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
+            if (ImUnityInputWrapper.IsControlPressed)
             {
                 result |= EventModifiers.Control;
             }
 
             return result;
         }
-        
+
         private ImMouseDevice GetDeviceType(PointerEventData e)
         {
-            return Input.touchSupported && e.pointerId >= 0 ? ImMouseDevice.Touch : ImMouseDevice.Mouse;
-        }
-
-        private bool IsAnyTouchBegan()
-        {
-            var count = Input.touchCount;
-
-            for (int i = 0; i < count; ++i)
-            {
-                if (Input.GetTouch(i).phase == TouchPhase.Began)
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            return ImUnityInputWrapper.TouchScreenSupported && e.pointerId >= 0 ? ImMouseDevice.Touch : ImMouseDevice.Mouse;
         }
 
         private Rect GetWorldRect()
@@ -432,7 +419,7 @@ namespace Imui.IO.UGUI
 
             return new Rect(screenBottomLeft.x, screenBottomLeft.y, screenTopRight.x - screenBottomLeft.x, screenTopRight.y - screenBottomLeft.y);
         }
-        
+
         public Vector2 GetScreenSize()
         {
             return GetWorldRect().size;

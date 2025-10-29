@@ -2,6 +2,11 @@ using System;
 using Imui.IO.Events;
 using UnityEngine;
 
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
+#endif
+
 namespace Imui.IO.Touch
 {
     public enum ImTouchKeyboardType
@@ -24,8 +29,40 @@ namespace Imui.IO.Touch
 
         public TouchScreenKeyboard TouchKeyboard;
 
+        public bool NativeInputFieldHidden
+        {
+            get
+            {
+                var inputFieldHidden = TouchScreenKeyboard.hideInput;
+
+#if UNITY_6000_0_OR_NEWER
+                inputFieldHidden |= TouchScreenKeyboard.inputFieldAppearance == TouchScreenKeyboard.InputFieldAppearance.AlwaysHidden;
+#endif
+
+                return inputFieldHidden;
+            }
+        }
+
         private uint touchKeyboardOwner;
         private int touchKeyboardRequestFrame;
+        private bool textInputDirty;
+
+        public ImTouchKeyboard()
+        {
+#if ENABLE_INPUT_SYSTEM
+            if (Keyboard.current != null)
+            {
+                Keyboard.current.onIMECompositionChange += OnTextInput;
+            }
+#endif
+        }
+
+#if ENABLE_INPUT_SYSTEM
+        private void OnTextInput(IMECompositionString c)
+        {
+            textInputDirty = true;
+        }
+#endif
 
         public void RequestTouchKeyboard(uint owner, ReadOnlySpan<char> text, ImTouchKeyboardSettings settings)
         {
@@ -56,6 +93,7 @@ namespace Imui.IO.Touch
                     settings.Muiltiline);
 
                 TouchKeyboard.characterLimit = settings.CharactersLimit;
+                TouchKeyboard.selection = settings.Selection;
             }
 
             if (!TouchKeyboard.active)
@@ -63,7 +101,7 @@ namespace Imui.IO.Touch
                 TouchKeyboard.active = true;
             }
 
-            if (TouchKeyboard.active && TouchKeyboard.canSetSelection)
+            if (NativeInputFieldHidden && TouchKeyboard.active && TouchKeyboard.canSetSelection)
             {
                 var prev = TouchKeyboard.selection;
                 var changed = prev.start != settings.Selection.start || prev.length != settings.Selection.length;
@@ -90,23 +128,27 @@ namespace Imui.IO.Touch
 
         public void HandleTouchKeyboard(out ImTextEvent textEvent)
         {
+            var textDirty = textInputDirty;
+            
+            textInputDirty = false;
             textEvent = default;
 
             if (TouchKeyboard != null)
             {
                 var shouldHide = Mathf.Abs(Time.frameCount - touchKeyboardRequestFrame) > TOUCH_KEYBOARD_CLOSE_FRAMES_THRESHOLD;
-                var inputFieldHidden = TouchScreenKeyboard.hideInput;
-
-#if UNITY_6000_0_OR_NEWER
-                inputFieldHidden |= TouchScreenKeyboard.inputFieldAppearance == TouchScreenKeyboard.InputFieldAppearance.AlwaysHidden;
-#endif
 
                 switch (TouchKeyboard.status)
                 {
-                    case TouchScreenKeyboard.Status.Visible when inputFieldHidden:
-                        if (Input.inputString?.Length > 0)
+                    case TouchScreenKeyboard.Status.Visible when NativeInputFieldHidden:
+                        var sendEvent = textDirty;
+#if !ENABLE_INPUT_SYSTEM
+                        sendEvent |= Input.inputString?.Length > 0;
+#endif
+
+                        if (sendEvent)
                         {
                             var text = TouchKeyboard.text;
+                            // TODO (artem-s): would be nice to update selection even when text itself hasn't changed
                             RangeInt? selection = TouchKeyboard.canGetSelection ? TouchKeyboard.selection : null;
                             textEvent = new ImTextEvent(ImTextEventType.Set, text, selection);
                         }
@@ -131,6 +173,13 @@ namespace Imui.IO.Touch
 
         public void Dispose()
         {
+#if ENABLE_INPUT_SYSTEM
+            if (Keyboard.current != null)
+            {
+                Keyboard.current.onIMECompositionChange -= OnTextInput;
+            }
+#endif
+
             if (TouchKeyboard != null)
             {
                 TouchKeyboard.active = false;
