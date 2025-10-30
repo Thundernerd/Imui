@@ -167,8 +167,7 @@ namespace Imui.Controls
             }
         }
     }
-
-    // TODO (artem-s): do not handle drag events if control is not active
+    
     public static class ImTextEdit
     {
         public const float CARET_BLINKING_TIME = 0.3f;
