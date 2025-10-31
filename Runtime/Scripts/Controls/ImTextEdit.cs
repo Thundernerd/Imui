@@ -1,5 +1,4 @@
 using System;
-using System.Runtime.InteropServices;
 using Imui.Core;
 using Imui.IO.Events;
 using Imui.IO.Touch;
@@ -455,6 +454,13 @@ namespace Imui.Controls
             gui.Canvas.PopRectMask();
             
             return textChanged;
+        }
+
+        public static void SelectAll(ImGui gui, uint id, ReadOnlySpan<char> text)
+        {
+            ref var state = ref gui.Storage.Get<ImTextEditState>(id);
+            state.Caret = text.Length;
+            state.Selection = -text.Length;
         }
 
         public static bool HandleKeyboardEvent(ImGui gui,

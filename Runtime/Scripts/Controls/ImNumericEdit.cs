@@ -443,6 +443,7 @@ namespace Imui.Controls
             {
                 ref var editBuffer = ref gui.Storage.Get<EditBuffer>(bufferId);
                 editBuffer.Populate(value.Format(gui.Formatter));
+                ImTextEdit.SelectAll(gui, id, editBuffer);
             }
 
             if (delta != 0)
@@ -465,7 +466,7 @@ namespace Imui.Controls
                     }
                 }
 
-                value.Clamp(min, max);
+                value.Clamp(in min, in max);
             }
 
             return changed;
@@ -796,7 +797,7 @@ namespace Imui.Controls
                 }
             }
 
-            public void Clamp(NumberValue min, NumberValue max)
+            public void Clamp(in NumberValue min, in NumberValue max)
             {
                 Clamp(ref this, in min, in max);
             }
