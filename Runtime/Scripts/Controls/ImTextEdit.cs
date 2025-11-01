@@ -14,7 +14,7 @@ namespace Imui.Controls
         public int Caret;
         public int Selection;
     }
-
+    
     public ref struct ImTextEditBuffer
     {
         public int MaxLength => maxLength;
@@ -71,7 +71,7 @@ namespace Imui.Controls
             if (mutableLength < 0)
             {
                 var adjustedSourceString = source[..Math.Min(source.Length, capacity)];
-                
+
                 mutable = arena.AllocArray<char>(capacity);
                 adjustedSourceString.CopyTo(mutable);
                 mutableLength = adjustedSourceString.Length;
@@ -79,7 +79,7 @@ namespace Imui.Controls
             else
             {
                 mutable = arena.ReallocArray(ref mutable, capacity);
-                
+
                 if (mutableLength > capacity)
                 {
                     mutableLength = capacity;
@@ -157,11 +157,10 @@ namespace Imui.Controls
     public static class ImTextEdit
     {
         public const float CARET_BLINKING_TIME = 0.3f;
-        public const float MIN_WIDTH = 1;
-        public const float MIN_HEIGHT = 1;
 
         public static ImRect AddRect(ImGui gui, ImSize size, bool? multiline, out bool isActuallyMultiline /* wtf? */)
         {
+            var minWidth = gui.GetRowHeight() * 1.5f; // approximately 1 char width + scroll bar
             var minHeight = gui.GetRowHeight();
 
             if (multiline == null)
@@ -186,7 +185,7 @@ namespace Imui.Controls
             return size.Mode switch
             {
                 ImSizeMode.Fixed => gui.Layout.AddRect(size.Width, size.Height),
-                _ => gui.Layout.AddRect(Mathf.Max(MIN_WIDTH, gui.GetLayoutWidth()), Mathf.Max(MIN_HEIGHT, minHeight))
+                _ => gui.Layout.AddRect(Mathf.Max(minWidth, gui.GetLayoutWidth()), minHeight)
             };
         }
 
@@ -329,6 +328,7 @@ namespace Imui.Controls
             var stateStyle = selected ? style.Selected : style.Normal;
             var textChanged = false;
             var editable = !gui.IsReadOnly;
+            var wrap = gui.Style.TextEdit.TextWrap;
 
             gui.Box(rect, stateStyle.Box.MakeAdjacent(adjacency));
 
@@ -347,19 +347,21 @@ namespace Imui.Controls
             }
 
             var textRect = rect.WithPadding(textPadding);
-            var layout = gui.TextDrawer.BuildTempLayout(
-                buffer,
-                textRect.W,
-                textRect.H,
-                textAlignment.X,
-                textAlignment.Y,
-                textSize,
-                style.TextWrap,
-                ImTextOverflow.Overflow);
 
             gui.Canvas.PushRectMask(rect, stateStyle.Box.BorderRadius);
             gui.Layout.Push(ImAxis.Vertical, textRect, ImLayoutFlag.Root);
             gui.BeginScrollable();
+
+            var layoutWidth = wrap ? gui.GetLayoutWidth() : textRect.W;
+            var layout = gui.TextDrawer.BuildTempLayout(
+                buffer,
+                layoutWidth,
+                textRect.H,
+                textAlignment.X,
+                textAlignment.Y,
+                textSize,
+                wrap,
+                ImTextOverflow.Overflow);
 
             textRect = gui.Layout.AddRect(layout.Width, layout.Height);
             gui.Canvas.Text(buffer, stateStyle.Box.FrontColor, textRect.TopLeft, in layout);
@@ -472,8 +474,8 @@ namespace Imui.Controls
             }
 
             gui.RegisterControl(id, rect);
-
-            gui.EndScrollable(multiline ? ImScrollFlag.None : ImScrollFlag.HideHorBar | ImScrollFlag.HideVerBar);
+            
+            gui.EndScrollable(multiline ? ImScrollFlag.None : ImScrollFlag.HideAll);
             gui.Layout.Pop();
             gui.Canvas.PopRectMask();
 
@@ -511,11 +513,11 @@ namespace Imui.Controls
             switch (evt.Key)
             {
                 case KeyCode.LeftArrow:
-                    stateChanged |= MoveCaretHorizontal(ref state, in buffer, -1, command);
+                    stateChanged |= MoveCaretHorizontal(ref state, in buffer, in layout, -1, command);
                     break;
 
                 case KeyCode.RightArrow:
-                    stateChanged |= MoveCaretHorizontal(ref state, in buffer, +1, command);
+                    stateChanged |= MoveCaretHorizontal(ref state, in buffer, in layout, +1, command);
                     break;
 
                 case KeyCode.UpArrow:
@@ -679,6 +681,30 @@ namespace Imui.Controls
             return false;
         }
 
+        public static int FindEndOfLine(int caret, int dir, ReadOnlySpan<char> buffer, in ImTextLayout layout)
+        {
+            var lineIndex = FindLineAtCaretPosition(caret, in layout, out _);
+            var line = layout.Lines[lineIndex];
+            
+            if (dir > 0)
+            {
+                var index = line.Start + line.Count;
+                if (index > 0 && (index != buffer.Length || buffer[index - 1] == '\n'))
+                {
+                    index -= 1;
+                }
+
+                return index;
+            }
+
+            if (dir < 0)
+            {
+                return line.Start;
+            }
+
+            return caret;
+        }
+
         public static int FindEndOfWordOrSpacesSequence(int caret, int dir, ReadOnlySpan<char> buffer)
         {
             caret = Mathf.Clamp(caret + dir, 0, buffer.Length);
@@ -733,7 +759,7 @@ namespace Imui.Controls
                                              int dir,
                                              ImKeyboardCommandFlag cmd)
         {
-            if (cmd.HasFlag(ImKeyboardCommandFlag.NextWord))
+            if ((cmd & (ImKeyboardCommandFlag.JumpWord | ImKeyboardCommandFlag.JumpEnd)) != 0)
             {
                 return false;
             }
@@ -744,7 +770,7 @@ namespace Imui.Controls
             viewPosition.y += (-layout.LineHeight * 0.5f) + (dir * layout.LineHeight);
             state.Caret = ViewToCaretPosition(viewPosition, gui.TextDrawer, textRect, in layout, in buffer);
 
-            if (cmd.HasFlag(ImKeyboardCommandFlag.Selection))
+            if (cmd.HasFlag(ImKeyboardCommandFlag.Select))
             {
                 state.Selection += prevCaret - state.Caret;
             }
@@ -756,16 +782,24 @@ namespace Imui.Controls
             return state.Caret != prevCaret || state.Selection != prevSelection;
         }
 
-        public static bool MoveCaretHorizontal(ref ImTextEditState state, in ImTextEditBuffer buffer, int dir, ImKeyboardCommandFlag cmd)
+        public static bool MoveCaretHorizontal(ref ImTextEditState state,
+                                               in ImTextEditBuffer buffer,
+                                               in ImTextLayout layout,
+                                               int dir,
+                                               ImKeyboardCommandFlag cmd)
         {
             var prevCaret = state.Caret;
             var prevSelection = state.Selection;
 
-            if (state.Selection != 0 && !cmd.HasFlag(ImKeyboardCommandFlag.Selection))
+            if (state.Selection != 0 && !cmd.HasFlag(ImKeyboardCommandFlag.Select))
             {
                 state.Caret = dir < 0 ? Mathf.Min(state.Caret + state.Selection, state.Caret) : Mathf.Max(state.Caret + state.Selection, state.Caret);
             }
-            else if (cmd.HasFlag(ImKeyboardCommandFlag.NextWord))
+            else if (cmd.HasFlag(ImKeyboardCommandFlag.JumpEnd))
+            {
+                state.Caret = FindEndOfLine(state.Caret, dir, buffer, in layout);
+            }
+            else if (cmd.HasFlag(ImKeyboardCommandFlag.JumpWord))
             {
                 state.Caret = FindEndOfWordOrSpacesSequence(state.Caret, dir, buffer);
             }
@@ -776,7 +810,7 @@ namespace Imui.Controls
 
             state.Caret = Mathf.Clamp(state.Caret, 0, buffer.Length);
 
-            if (cmd.HasFlag(ImKeyboardCommandFlag.Selection))
+            if (cmd.HasFlag(ImKeyboardCommandFlag.Select))
             {
                 state.Selection += prevCaret - state.Caret;
             }
