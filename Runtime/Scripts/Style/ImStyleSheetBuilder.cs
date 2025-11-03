@@ -90,6 +90,8 @@ namespace Imui.Style
                 BorderContrast = theme.BorderContrast,
                 IsDark = palette.IsDark
             };
+
+            var embeddedButtonPadding = Math.Max(theme.BorderThickness, 3.0f);
             
             // global
 
@@ -218,6 +220,13 @@ namespace Imui.Style
             sheet.Checkbox.Checked.Pressed.BackColor = palette.Accent.ToPressed(ctx);
             sheet.Checkbox.Checked.Pressed.FrontColor = palette.AccentFront.ToPressed(ctx);
             sheet.Checkbox.Checked.Pressed.BorderColor = palette.Accent.ToPressed(ctx).ToBorder(ctx);
+            
+            // button accent
+
+            sheet.EmbeddedButton = sheet.Button;
+            sheet.EmbeddedButton.Normal = sheet.Checkbox.Checked.Normal;
+            sheet.EmbeddedButton.Hovered = sheet.Checkbox.Checked.Hovered;
+            sheet.EmbeddedButton.Pressed = sheet.Checkbox.Checked.Pressed;
 
             // radiobox
 
@@ -231,6 +240,7 @@ namespace Imui.Style
             // slider
 
             var sliderRadius = theme.BorderRadius;
+            var sliderHandleRadius = theme.BorderRadius * (theme.TextSize + theme.ExtraRowHeight);
 
             sheet.Slider.BarThickness = 0.45f;
             sheet.Slider.TextOverflow = ImTextOverflow.Ellipsis;
@@ -253,7 +263,7 @@ namespace Imui.Style
             sheet.Slider.Fill.BorderColor = palette.Accent.ToBorder(ctx);
 
             sheet.Slider.Handle.BorderThickness = theme.BorderThickness;
-            sheet.Slider.Handle.BorderRadius = theme.BorderRadius >= 1.0f ? 999.9f : 0.0f;
+            sheet.Slider.Handle.BorderRadius = sliderHandleRadius;
             sheet.Slider.HandleThickness = 1.0f;
 
             sheet.Slider.Handle.Normal.BackColor = palette.Control.Ascend(ctx);
@@ -328,7 +338,8 @@ namespace Imui.Style
 
             // dropdown
             
-            sheet.Dropdown.ArrowScale = 0.6f;
+            sheet.Dropdown.ArrowScale = 0.5f;
+            sheet.Dropdown.EmbeddedButtonPadding = embeddedButtonPadding;
             sheet.Dropdown.Button = sheet.Button;
             sheet.Dropdown.Button.Alignment = new ImAlignment(0.0f, 0.5f);
             sheet.Dropdown.Button.Overflow = ImTextOverflow.Ellipsis;

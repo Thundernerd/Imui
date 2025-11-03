@@ -348,7 +348,7 @@ namespace Imui.Controls
                 textPadding.Bottom = halfVertPadding;
             }
 
-            var textRect = rect.WithPadding(textPadding);
+            var textRect = rect.WithPadding(textPadding + gui.Style.TextEdit.Padding);
 
             gui.Canvas.PushRectMask(rect, stateStyle.Box.BorderRadius);
             gui.Layout.Push(ImAxis.Vertical, textRect, ImLayoutFlag.Root);

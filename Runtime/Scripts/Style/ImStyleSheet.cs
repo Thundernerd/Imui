@@ -15,6 +15,7 @@ namespace Imui.Style
         public ImStyleWindow Window;
         public ImStyleText Text;
         public ImStyleButton Button;
+        public ImStyleButton EmbeddedButton;
         public ImStyleCheckbox Checkbox;
         public ImStyleFoldout Foldout;
         public ImStyleScrollbar Scroll;

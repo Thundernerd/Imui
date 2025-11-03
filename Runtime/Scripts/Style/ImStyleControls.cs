@@ -86,6 +86,7 @@ namespace Imui.Style
     public struct ImStyleDropdown
     {
         public float ArrowScale;
+        public float EmbeddedButtonPadding;
         public ImStyleButton Button;
     }
 
@@ -181,6 +182,7 @@ namespace Imui.Style
         public float CaretWidth;
         public ImAlignment Alignment;
         public bool TextWrap;
+        public ImPadding Padding;
     }
 
     [Serializable]
