@@ -33,18 +33,23 @@ namespace Imui.Examples
     public static class ImDemoWindow
     {
         private static int selectedThemeIndex = 0;
-        private static ImTheme[] themes = { CreateTheme(0), CreateTheme(1), CreateTheme(2), CreateTheme(3), CreateTheme(4), CreateTheme(5), CreateTheme(6) };
+
+        private static ImTheme[] themes =
+        {
+            CreateTheme(0), CreateTheme(1), CreateTheme(2), CreateTheme(3), CreateTheme(4), CreateTheme(5), CreateTheme(6), CreateTheme(7)
+        };
 
         private static string[] themeNames =
         {
             nameof(ImThemeBuiltin.Light), nameof(ImThemeBuiltin.Dark), nameof(ImThemeBuiltin.Dear), nameof(ImThemeBuiltin.Orange),
-            nameof(ImThemeBuiltin.Terminal), nameof(ImThemeBuiltin.LightTouch), nameof(ImThemeBuiltin.DarkTouch)
+            nameof(ImThemeBuiltin.Terminal), nameof(ImThemeBuiltin.LightTouch), nameof(ImThemeBuiltin.DarkTouch), nameof(ImThemeBuiltin.Wire)
         };
 
         private static ImTheme CreateTheme(int index)
         {
             return index switch
             {
+                7 => ImThemeBuiltin.Wire(),
                 6 => ImThemeBuiltin.DarkTouch(),
                 5 => ImThemeBuiltin.LightTouch(),
                 4 => ImThemeBuiltin.Terminal(),
@@ -102,12 +107,12 @@ namespace Imui.Examples
         private static readonly ImDemoTreeNode[] treeNodes = new[]
         {
             new ImDemoTreeNode("Node 0",
-                new ImDemoTreeNode("Node 1"),
-                new ImDemoTreeNode("Node 2")),
+                               new ImDemoTreeNode("Node 1"),
+                               new ImDemoTreeNode("Node 2")),
             new ImDemoTreeNode("Node 3"), new ImDemoTreeNode("Node 4",
-                new ImDemoTreeNode("Node 5",
-                    new ImDemoTreeNode("Node 6"),
-                    new ImDemoTreeNode("Node 7")))
+                                                             new ImDemoTreeNode("Node 5",
+                                                                                new ImDemoTreeNode("Node 6"),
+                                                                                new ImDemoTreeNode("Node 7")))
         };
 
         private static HashSet<int> selectedValues = new HashSet<int>(values.Length);
@@ -363,7 +368,7 @@ namespace Imui.Examples
                             (node.Childrens.Length == 0 ? ImTreeNodeFlags.NonExpandable : 0);
                 var isSelected = selectedNodes.Contains(node.Name);
                 var expanded = gui.BeginTreeNode(ref isSelected, node.Name, flags: flags);
-                
+
                 SetSelected(node.Name, isSelected);
 
                 if (expanded)
@@ -430,15 +435,15 @@ namespace Imui.Examples
 
                     gui.EndMenu();
                 }
-                
+
                 if (gui.BeginMenu("Recursive"))
                 {
                     DrawMenuBarItems(gui, ref windowOpen);
                     gui.EndMenu();
                 }
-                
+
                 gui.Separator();
-                
+
                 if (gui.BeginMenu("Test"))
                 {
                     if (gui.BeginMenu("Same name submenu"))
@@ -448,25 +453,25 @@ namespace Imui.Examples
                     }
 
                     gui.PushId("Next Menu");
-                    
+
                     if (gui.BeginMenu("Same name submenu"))
                     {
                         gui.Menu("Item");
                         gui.EndMenu();
                     }
-                    
+
                     gui.PopId();
 
                     gui.EndMenu();
                 }
-                
+
                 gui.Separator();
-                
+
                 if (gui.Menu("Close"))
                 {
                     windowOpen = false;
                 }
-                
+
                 gui.EndMenu();
             }
 
@@ -481,11 +486,11 @@ namespace Imui.Examples
                 {
                     showDebugWindow = true;
                 }
-                
+
                 gui.EndMenu();
             }
         }
-        
+
         private static void DrawLayoutPage(ImGui gui)
         {
             gui.AddSpacing();
