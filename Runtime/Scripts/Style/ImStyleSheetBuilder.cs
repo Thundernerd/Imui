@@ -378,7 +378,7 @@ namespace Imui.Style
 
             // menu bar
 
-            sheet.MenuBar.ItemExtraWidth = theme.InnerSpacing * 6.0f;
+            sheet.MenuBar.ItemExtraWidth = theme.Spacing * 6.5f;
             sheet.MenuBar.Box = sheet.Menu.Box;
             sheet.MenuBar.Box.BackColor = palette.Back.Ascend(ctx);
             sheet.MenuBar.Box.BorderRadius = 0.0f;
