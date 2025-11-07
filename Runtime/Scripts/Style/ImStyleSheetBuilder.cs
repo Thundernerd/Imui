@@ -172,6 +172,7 @@ namespace Imui.Style
             sheet.TextEdit.Selected.Box.BorderRadius = theme.BorderRadius / 2.0f;
             sheet.TextEdit.Selected.Box.BorderThickness = theme.BorderThickness;
 
+            sheet.TextEdit.HintFrontColor = palette.Front.WithAlpha(0.3f);
             sheet.TextEdit.CaretWidth = 2.0f;
             sheet.TextEdit.Alignment = new ImAlignment(0.0f, 0.0f);
             sheet.TextEdit.TextWrap = false;

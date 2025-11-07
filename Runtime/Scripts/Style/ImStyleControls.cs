@@ -153,6 +153,7 @@ namespace Imui.Style
         public ImAlignment Alignment;
         public bool TextWrap;
         public ImPadding Padding;
+        public Color32 HintFrontColor;
     }
 
     [Serializable]

@@ -74,6 +74,7 @@ namespace Imui.Examples
             "Value 1", "Value 2", "Value 3", "Value 4", "Value 5", "Value 6", "Value 7", "Value 8", "Value 9", "Value 10", "Value 11", "Value 12"
         };
 
+        private static string textWithHint = string.Empty;
         private static string singleLineText = "Single line text edit";
         private static string multiLineText = "Multiline text\nedit";
         private static float floatValue = 10.5f;
@@ -241,6 +242,7 @@ namespace Imui.Examples
                 gui.EndDropdown();
             }
             gui.Separator("Text editors");
+            gui.TextEdit(ref textWithHint, hint: "Write something here");
             gui.TextEdit(ref singleLineText, multiline: false);
             gui.Checkbox(ref textEditWrap, "Wrap Text");
             using (gui.StyleScope(ref gui.Style.TextEdit.TextWrap, textEditWrap))
