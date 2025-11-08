@@ -159,6 +159,17 @@ namespace Imui.Controls
 
             return Button(group.Gui, id, label, item.Rect, in style, out state, flag);
         }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool Button(this ref ImGroup group, ReadOnlySpan<char> label, ImButtonFlag flag = ImButtonFlag.None)
+        {
+            var id = group.Gui.GetNextControlId();
+            var item = group.GetNext();
+            var style = group.Gui.Style.Button;
+            style.BorderRadius.Apply(item.Flags);
+
+            return Button(group.Gui, id, label, item.Rect, in style, out _, flag);
+        }
 
         public static bool Button(this ImGui gui,
                                   uint id,
