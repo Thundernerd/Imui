@@ -111,6 +111,7 @@ namespace Imui.Style
             // button
 
             sheet.Button.Alignment = new ImAlignment(0.5f, 0.5f);
+            sheet.Button.WrapText = false;
             sheet.Button.BorderRadius = theme.BorderRadius;
             sheet.Button.BorderThickness = theme.BorderThickness;
 

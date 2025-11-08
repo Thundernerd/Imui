@@ -43,6 +43,7 @@ namespace Imui.Style
         public ImRectRadius BorderRadius;
         public ImAlignment Alignment;
         public ImTextOverflow Overflow;
+        public bool WrapText;
     }
 
     [Serializable]

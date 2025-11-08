@@ -198,7 +198,7 @@ namespace Imui.Controls
                 }
             }
 
-            var textSettings = new ImTextSettings(gui.Style.Layout.TextSize, buttonStyle.Alignment, overflow: buttonStyle.Overflow);
+            var textSettings = new ImTextSettings(gui.Style.Layout.TextSize, buttonStyle.Alignment, buttonStyle.WrapText, buttonStyle.Overflow);
             gui.Text(label, textSettings, boxStyle.FrontColor, labelRect);
 
             return changed;

@@ -328,7 +328,7 @@ namespace Imui.Controls
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ImTextSettings CreateTextSettings(ImGui gui, in ImStyleButton style)
         {
-            return new ImTextSettings(gui.Style.Layout.TextSize, style.Alignment, false, style.Overflow);
+            return new ImTextSettings(gui.Style.Layout.TextSize, style.Alignment, style.WrapText, style.Overflow);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
