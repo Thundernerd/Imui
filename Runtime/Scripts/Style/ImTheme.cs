@@ -127,10 +127,10 @@ namespace Imui.Style
                 BorderRadius = 5f,
                 BorderThickness = 1f,
                 ReadOnlyColorMultiplier = 0.7f,
-                Background = new Color32(58, 58, 58, 255),
+                Background = new Color32(49, 49, 49, 255),
                 Foreground = new Color32(224, 224, 224, 255),
                 Accent = new Color32(17, 121, 200, 255),
-                Control = new Color32(83, 83, 83, 255),
+                Control = new Color32(79, 79, 79, 255),
                 Contrast = 0f,
                 BorderContrast = -0.04f
             };

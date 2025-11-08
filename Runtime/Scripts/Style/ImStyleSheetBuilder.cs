@@ -20,6 +20,7 @@ namespace Imui.Style
 
         private static Color Ascend(this Color color, ThemeContext context) => color.ChangeLightness(context, LAYER_DELTA);
         private static Color HalfAscend(this Color color, ThemeContext context) => color.ChangeLightness(context, LAYER_DELTA / 2.0f);
+        private static Color ThirdAscend(this Color color, ThemeContext context) => color.ChangeLightness(context, LAYER_DELTA / 3.0f);
         private static Color Descend(this Color color, ThemeContext context) => color.ChangeLightness(context, -LAYER_DELTA);
         private static Color ToHovered(this Color color, ThemeContext context) => color.ChangeLightness(context, HOVERED_LIGHTNESS_DELTA);
         private static Color ToPressed(this Color color, ThemeContext context) => color.ChangeLightness(context, PRESSED_LIGHTNESS_DELTA);
@@ -163,14 +164,14 @@ namespace Imui.Style
             var textEditBorderSelected = Math.Min(textEditBorderDefault * 1.5f, Math.Max(theme.BorderThickness, theme.InnerSpacing));
 
             sheet.TextEdit.Normal.SelectionColor = palette.Accent.EnsureLightnessDistance(sheet.Window.Box.BackColor).WithAlpha(0.4f);
-            sheet.TextEdit.Normal.Box.BackColor = palette.Control.ToHovered(ctx);
+            sheet.TextEdit.Normal.Box.BackColor = palette.Control.ThirdAscend(ctx);
             sheet.TextEdit.Normal.Box.FrontColor = palette.Front;
             sheet.TextEdit.Normal.Box.BorderColor = palette.Control.ToBorder(ctx);
             sheet.TextEdit.Normal.Box.BorderRadius = theme.BorderRadius / 1.5f;
             sheet.TextEdit.Normal.Box.BorderThickness = textEditBorderDefault;
 
             sheet.TextEdit.Selected.SelectionColor = sheet.TextEdit.Normal.SelectionColor;
-            sheet.TextEdit.Selected.Box.BackColor = palette.Control.ToHovered(ctx).ToHovered(ctx);
+            sheet.TextEdit.Selected.Box.BackColor = palette.Control.ThirdAscend(ctx).ToHovered(ctx);
             sheet.TextEdit.Selected.Box.FrontColor = palette.Front;
             sheet.TextEdit.Selected.Box.BorderColor = palette.Accent.EnsureLightnessDistance(sheet.Window.Box.BackColor);
             sheet.TextEdit.Selected.Box.BorderRadius = sheet.TextEdit.Normal.Box.BorderRadius;
