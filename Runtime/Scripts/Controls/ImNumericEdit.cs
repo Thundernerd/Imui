@@ -662,7 +662,6 @@ namespace Imui.Controls
             {
                 if (active)
                 {
-                    // TODO (artem-s): limit number of characters to EditBuffer.BUFFER_LENGTH
                     ref var editBuffer = ref gui.Storage.Get<EditBuffer>(bufferId);
                     editBuffer.Populate(textBuffer);
 

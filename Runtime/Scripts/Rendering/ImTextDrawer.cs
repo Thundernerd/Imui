@@ -236,14 +236,7 @@ namespace Imui.Rendering
                 atlasDirty = false;
             }
         }
-
-        public void ApplyAtlasChanges() {
-            if (atlasDirty) {
-                atlasDirty = false;
-                fontAsset.atlasTexture.Apply();
-            }
-        }
-
+        
         public float GetLineHeightFromFontSize(float size)
         {
             return FontLineHeight * (size / FontRenderSize);
