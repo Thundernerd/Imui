@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -7,11 +8,24 @@ namespace Imui.IO
     {
         Vector2 GetScreenSize();
         float GetScale();
-        
+        Vector2Int SetupRenderTarget(CommandBuffer cmd);
+        void Schedule(IImuiRenderDelegate renderDelegate);
+    }
+
+    public interface IImuiRenderDelegate
+    {
+        void Render(IImuiRenderingContext context);
+    }
+    
+    public interface IImuiRenderingScheduler: IDisposable
+    {
+        void Schedule(IImuiRenderDelegate renderDelegate);
+    }
+
+    public interface IImuiRenderingContext : IDisposable
+    {
         CommandBuffer CreateCommandBuffer();
         void ReleaseCommandBuffer(CommandBuffer cmd);
-
-        Vector2Int SetupRenderTarget(CommandBuffer cmd);
-        void Execute(CommandBuffer cmd);
+        void ExecuteCommandBuffer(CommandBuffer cmd);
     }
 }

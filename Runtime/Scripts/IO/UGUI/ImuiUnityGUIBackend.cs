@@ -1,5 +1,6 @@
 using System;
 using Imui.IO.Events;
+using Imui.IO.Rendering;
 using Imui.IO.Utility;
 using Imui.IO.Touch;
 using Imui.Utility;
@@ -20,11 +21,10 @@ namespace Imui.IO.UGUI
             Inherited,
             Custom
         }
-        
+
         private const float CUSTOM_SCALE_MIN = 0.05f;
         private const float CUSTOM_SCALE_MAX = 16.0f;
 
-        private const int COMMAND_BUFFER_POOL_INITIAL_SIZE = 2;
         private const int MOUSE_EVENTS_QUEUE_SIZE = 4;
         private const int KEYBOARD_EVENTS_QUEUE_SIZE = 16;
 
@@ -36,16 +36,19 @@ namespace Imui.IO.UGUI
 
         private static Texture2D ClearTexture;
         private static readonly Vector3[] TempBuffer = new Vector3[4];
+        private static Material DefaultMaterial;
 
         public bool WasMouseDownThisFrame { get; private set; }
 
         public Vector2 MousePosition => mousePosition;
+        public double Time => time;
         public ref readonly ImMouseEvent MouseEvent => ref mouseEvent;
         public ref readonly ImTextEvent TextEvent => ref textEvent;
         public int KeyboardEventsCount => keyboardEvents.Count;
 
         public override Texture mainTexture => texture?.Texture == null ? ClearTexture : texture.Texture;
-        
+        public override Material defaultMaterial => DefaultMaterial ? DefaultMaterial : base.defaultMaterial;
+
         public float CustomScale
         {
             get => customScale;
@@ -60,18 +63,19 @@ namespace Imui.IO.UGUI
 
         [SerializeField] private ScalingMode scalingMode = ScalingMode.Inherited;
         [SerializeField] private float customScale = 1.0f;
-        
+
         private IImuiInput.RaycasterDelegate raycaster;
         private ImDynamicRenderTexture texture;
-        private ImDynamicArray<CommandBuffer> commandBufferPool;
         private ImCircularBuffer<ImMouseEvent> mouseEventsQueue;
         private ImCircularBuffer<ImKeyboardEvent> nextKeyboardEvents;
         private ImCircularBuffer<ImKeyboardEvent> keyboardEvents;
+        private IImuiRenderingScheduler scheduler;
         private Vector2 mousePosition;
         private ImMouseEvent mouseEvent;
         private ImTextEvent textEvent;
         private ImTouchKeyboard touchKeyboardHandler;
         private bool elementHovered;
+        private double time;
 
         private bool mouseHeldDown;
         private ImMouseDevice mouseDownDevice;
@@ -84,6 +88,16 @@ namespace Imui.IO.UGUI
         {
             base.Awake();
 
+            if (!DefaultMaterial)
+            {
+                var shader = Resources.Load<Shader>("Imui/imui_ugui");
+                if (shader)
+                {
+                    DefaultMaterial = new Material(shader);
+                }
+            }
+
+            scheduler ??= GraphicsSettings.currentRenderPipeline ? new ImuiScriptableRenderingScheduler() : new ImuiBuiltinRenderingScheduler();
             useGUILayout = false;
         }
 
@@ -128,11 +142,6 @@ namespace Imui.IO.UGUI
             if (nextKeyboardEvents.Array == null)
             {
                 nextKeyboardEvents = new ImCircularBuffer<ImKeyboardEvent>(KEYBOARD_EVENTS_QUEUE_SIZE);
-            }
-
-            if (commandBufferPool.Array == null)
-            {
-                commandBufferPool = new ImDynamicArray<CommandBuffer>(COMMAND_BUFFER_POOL_INITIAL_SIZE);
             }
 
             touchKeyboardHandler ??= new ImTouchKeyboard();
@@ -191,7 +200,7 @@ namespace Imui.IO.UGUI
         {
             textEvent = default;
         }
-        
+
         public void Pull()
         {
 #if UNITY_EDITOR
@@ -203,14 +212,15 @@ namespace Imui.IO.UGUI
             var mouseBtnLeft = (int)PointerEventData.InputButton.Left;
 
             mousePosition = GetMousePosition();
+            time = UnityEngine.Time.unscaledTimeAsDouble;
 
             if (mouseEventsQueue.TryPopBack(out var queuedMouseEvent))
             {
                 mouseEvent = queuedMouseEvent;
             }
-            else if (mouseHeldDown && (Time.unscaledTime - mouseDownTime[mouseBtnLeft]) > HELD_DOWN_DELAY)
+            else if (mouseHeldDown && (UnityEngine.Time.unscaledTime - mouseDownTime[mouseBtnLeft]) > HELD_DOWN_DELAY)
             {
-                var delta = new Vector2(Time.unscaledTime - mouseDownTime[mouseBtnLeft], 0);
+                var delta = new Vector2(UnityEngine.Time.unscaledTime - mouseDownTime[mouseBtnLeft], 0);
                 var count = mouseDownCount[mouseBtnLeft];
 
                 mouseEvent = new ImMouseEvent(ImMouseEventType.Hold, mouseBtnLeft, EventModifiers.None, delta, mouseDownDevice, count);
@@ -244,7 +254,7 @@ namespace Imui.IO.UGUI
 
         public Vector2 GetMousePosition()
         {
-            return ((Vector2)Input.mousePosition - GetWorldRect().position) / GetScale();
+            return ((Vector2)ImUnityInputWrapper.MousePosition - GetWorldRect().position) / GetScale();
         }
 
         public void RequestTouchKeyboard(uint owner, ReadOnlySpan<char> text, ImTouchKeyboardSettings settings)
@@ -272,30 +282,33 @@ namespace Imui.IO.UGUI
                 nextKeyboardEvents.PushFront(new ImKeyboardEvent(keyboardEventType, evt.keyCode, evt.modifiers, evt.character));
             }
         }
-        
+
         public void OnPointerDown(PointerEventData eventData)
         {
             // (artem-s): with touch input, defer down event one frame so controls first could understand they are hovered
-            // before processing actual click
+            // before processing the actual click
 
             var device = GetDeviceType(eventData);
-            if (device == ImMouseDevice.Touch && IsAnyTouchBegan())
+            if (device == ImMouseDevice.Touch && ImUnityInputWrapper.IsTouchBeganThisFrame())
             {
-                mouseEventsQueue.PushFront(new ImMouseEvent(ImMouseEventType.Move, (int)eventData.button, GetMouseEventModifiers(), eventData.delta / GetScale(),
-                    device));
+                mouseEventsQueue.PushFront(new ImMouseEvent(ImMouseEventType.Move,
+                                                            (int)eventData.button,
+                                                            GetMouseEventModifiers(),
+                                                            eventData.delta / GetScale(),
+                                                            device));
             }
 
             var btn = (int)eventData.button;
             var pos = GetMousePosition();
 
-            if (Time.unscaledTime - mouseDownTime[btn] >= MULTI_CLICK_TIME_THRESHOLD || (pos - mouseDownPos[btn]).magnitude >= MULTI_CLICK_POS_THRESHOLD)
+            if (UnityEngine.Time.unscaledTime - mouseDownTime[btn] >= MULTI_CLICK_TIME_THRESHOLD || (pos - mouseDownPos[btn]).magnitude >= MULTI_CLICK_POS_THRESHOLD)
             {
                 mouseDownCount[btn] = 0;
             }
 
             mouseDownPos[btn] = pos;
             mouseDownCount[btn] += 1;
-            mouseDownTime[btn] = Time.unscaledTime;
+            mouseDownTime[btn] = UnityEngine.Time.unscaledTime;
             possibleClick[btn] = true;
             mouseDownDevice = device;
 
@@ -304,8 +317,12 @@ namespace Imui.IO.UGUI
                 mouseHeldDown = true;
             }
 
-            mouseEventsQueue.PushFront(new ImMouseEvent(ImMouseEventType.Down, (int)eventData.button, GetMouseEventModifiers(), eventData.delta / GetScale(),
-                device, mouseDownCount[btn]));
+            mouseEventsQueue.PushFront(new ImMouseEvent(ImMouseEventType.Down,
+                                                        (int)eventData.button,
+                                                        GetMouseEventModifiers(),
+                                                        eventData.delta / GetScale(),
+                                                        device,
+                                                        mouseDownCount[btn]));
         }
 
         public void OnPointerUp(PointerEventData eventData)
@@ -332,9 +349,24 @@ namespace Imui.IO.UGUI
         public void OnDrag(PointerEventData eventData)
         {
             var device = GetDeviceType(eventData);
+            var delta = eventData.delta / GetScale();
+            var button = (int)eventData.button;
+            var modifiers = GetMouseEventModifiers();
 
             mouseHeldDown = false;
-            mouseEventsQueue.PushFront(new ImMouseEvent(ImMouseEventType.Drag, (int)eventData.button, GetMouseEventModifiers(), eventData.delta / GetScale(), device));
+
+            if (mouseEventsQueue.TryPeekFront(out var existingEvent) &&
+                existingEvent.Type == ImMouseEventType.BeginDrag &&
+                existingEvent.Button == button &&
+                existingEvent.Modifiers == modifiers &&
+                existingEvent.Device == device &&
+                existingEvent.Delta == delta)
+            {
+                // (artem-s): skip this event, because drag delta is already handled by BeginDrag
+                return;
+            }
+
+            mouseEventsQueue.PushFront(new ImMouseEvent(ImMouseEventType.Drag, button, modifiers, delta, device));
         }
 
         public void OnBeginDrag(PointerEventData eventData)
@@ -352,52 +384,27 @@ namespace Imui.IO.UGUI
 
             var dx = eventData.scrollDelta.x;
             var dy = -eventData.scrollDelta.y;
-
-#if UNITY_WEBGL && !UNITY_EDITOR
-            dx = -dx;
-#endif
-
+            
             var device = GetDeviceType(eventData);
-            var delta = new Vector2(dx, dy);
+            var delta = ImUnityScrollUtility.ProcessScrollDelta(dx, dy);
             mouseEventsQueue.PushFront(new ImMouseEvent(ImMouseEventType.Scroll, (int)eventData.button, EventModifiers.None, delta, device));
         }
 
         private EventModifiers GetMouseEventModifiers()
         {
-            // TODO (artem-s): add support for new input system
-#if NEW_INPUT_SYSTEM_ENABLED
-            return EventModifiers.None;
-#endif
-
             var result = EventModifiers.None;
 
-            if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
+            if (ImUnityInputWrapper.IsControlPressed)
             {
                 result |= EventModifiers.Control;
             }
 
             return result;
         }
-        
+
         private ImMouseDevice GetDeviceType(PointerEventData e)
         {
-            return e.pointerId >= 0 ? ImMouseDevice.Touch : ImMouseDevice.Mouse;
-        }
-
-        private bool IsAnyTouchBegan()
-        {
-            var touches = Input.touches;
-            var count = Input.touchCount;
-
-            for (int i = 0; i < count; ++i)
-            {
-                if (touches[i].phase == TouchPhase.Began)
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            return ImUnityInputWrapper.TouchScreenSupported && e.pointerId >= 0 ? ImMouseDevice.Touch : ImMouseDevice.Mouse;
         }
 
         private Rect GetWorldRect()
@@ -411,7 +418,7 @@ namespace Imui.IO.UGUI
 
             return new Rect(screenBottomLeft.x, screenBottomLeft.y, screenTopRight.x - screenBottomLeft.x, screenTopRight.y - screenBottomLeft.y);
         }
-        
+
         public Vector2 GetScreenSize()
         {
             return GetWorldRect().size;
@@ -420,24 +427,6 @@ namespace Imui.IO.UGUI
         public float GetScale()
         {
             return scalingMode == ScalingMode.Inherited ? canvas.scaleFactor : customScale;
-        }
-
-        CommandBuffer IImuiRenderer.CreateCommandBuffer()
-        {
-            if (commandBufferPool.Count == 0)
-            {
-                var cmd = new CommandBuffer() { name = "Imui" };
-
-                commandBufferPool.Add(cmd);
-            }
-
-            return commandBufferPool.Pop();
-        }
-
-        void IImuiRenderer.ReleaseCommandBuffer(CommandBuffer cmd)
-        {
-            cmd.Clear();
-            commandBufferPool.Add(cmd);
         }
 
         Vector2Int IImuiRenderer.SetupRenderTarget(CommandBuffer cmd)
@@ -454,9 +443,9 @@ namespace Imui.IO.UGUI
             return targetSize;
         }
 
-        void IImuiRenderer.Execute(CommandBuffer cmd)
+        public void Schedule(IImuiRenderDelegate renderDelegate)
         {
-            Graphics.ExecuteCommandBuffer(cmd);
+            scheduler.Schedule(renderDelegate);
         }
     }
 }
