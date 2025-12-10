@@ -60,7 +60,8 @@ namespace Imui.IO.Utility
                 }
             }
             
-            var desc = new RenderTextureDescriptor(w, h, RenderTextureFormat.ARGB32, 0, 0, RenderTextureReadWrite.Linear);
+            var desc = new RenderTextureDescriptor(w,h,RenderTextureFormat.ARGB32,0,0);
+            // var desc = new RenderTextureDescriptor(w, h, RenderTextureFormat.ARGB32, 0, 0, RenderTextureReadWrite.Linear);
             
             Texture = new RenderTexture(desc)
             {

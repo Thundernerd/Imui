@@ -153,7 +153,7 @@ namespace Imui.IO.UGUI
         {
             this.raycaster = raycaster;
 #if UNITY_2021_3_OR_NEWER
-            SetRaycastDirty();
+            // SetRaycastDirty();
 #endif
         }
 

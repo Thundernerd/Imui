@@ -106,13 +106,13 @@ Shader "Hidden/Imui/UGUI"
                 OUT.mask = float4(v.vertex.xy * 2 - clampedRect.xy - clampedRect.zw, 0.25 / (0.25 * half2(_UIMaskSoftnessX, _UIMaskSoftnessY) + abs(pixelSize.xy)));
 
 
-                if (_UIVertexColorAlwaysGammaSpace)
-                {
-                    if(!IsGammaSpace())
-                    {
-                        v.color.rgb = UIGammaToLinear(v.color.rgb);
-                    }
-                }
+                // if (_UIVertexColorAlwaysGammaSpace)
+                // {
+                //     if(!IsGammaSpace())
+                //     {
+                //         v.color.rgb = UIGammaToLinear(v.color.rgb);
+                //     }
+                // }
 
                 OUT.color = v.color * _Color;
                 return OUT;
