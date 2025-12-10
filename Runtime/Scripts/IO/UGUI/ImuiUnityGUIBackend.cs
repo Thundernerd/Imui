@@ -88,6 +88,12 @@ namespace Imui.IO.UGUI
         {
             base.Awake();
 
+            if (Application.isPlaying)
+            {
+                // Zeepkist addition
+                DontDestroyOnLoad(gameObject);
+            }
+
             if (!DefaultMaterial)
             {
                 var shader = Resources.Load<Shader>("Imui/imui_ugui");
